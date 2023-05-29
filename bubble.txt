@@ -1,0 +1,77 @@
+%%writefile bubble.cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+#include <sys/time.h>
+
+void bubbleSort(int arr[], int n) {
+    int i, j;
+    for (i = 0; i < n - 1; i++) {
+        for (j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+void parallelBubbleSort(int arr[], int n) {
+    int i, j;
+    for (i = 0; i < n - 1; i++) {
+#pragma omp parallel for shared(arr) private(j)
+        for (j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+double getCurrentTime() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec + tv.tv_usec * 1e-6;
+}
+
+int main() {
+    int n = 10;
+    int arr[] = {5, 2, 8, 9, 1, 3, 7, 6, 4, 10};
+
+    printf("Sequential Bubble Sort:\n");
+    double startTime = getCurrentTime();
+    bubbleSort(arr, n);
+    double endTime = getCurrentTime();
+
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    printf("Execution Time: %lf seconds\n", endTime - startTime);
+
+    printf("Parallel Bubble Sort:\n");
+    startTime = getCurrentTime();
+    parallelBubbleSort(arr, n);
+    endTime = getCurrentTime();
+
+    for (int i = 0; i < n; i++) {
+        printf("%d ", arr[i]);
+    }
+    printf("\n");
+    printf("Execution Time: %lf seconds\n", endTime - startTime);
+
+    return 0;
+}
+
+
+
+%%shell
+nvcc bubble.cpp -o bubble
+
+
+
+%%shell
+./bubble

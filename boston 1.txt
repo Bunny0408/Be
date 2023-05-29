@@ -1,0 +1,48 @@
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn import metrics
+
+
+boston = pd.read_csv('Boston-house-price-data.csv')
+
+
+#Seperate features and target
+X = boston.drop(['MEDV'], axis = 1)
+y = boston['MEDV']
+
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+# Scale the features using standardization
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+#linear regression using dnn
+model = tf.keras.Sequential([
+tf.keras.layers.Dense(1, input_shape=(X_train.shape[1],))
+])
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train, y_train, batch_size=32, epochs=100, verbose=1)
+
+
+# Evaluate the model on the test set
+loss = model.evaluate(X_test, y_test)
+print("Test Loss:", loss)
+y_pred = model.predict(X_train)
+print('RMSE:',np.sqrt(metrics.mean_squared_error(y_train, y_pred)))
+
+
+#plotting linear regression
+plt.xlabel("Prices")
+plt.ylabel("Predicted prices")
+plt.title("Prices vs Predicted prices")
+plt.scatter(y_train, y_pred)
+plt.show()

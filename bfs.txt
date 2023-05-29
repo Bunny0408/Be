@@ -1,0 +1,102 @@
+%%writefile bfs.cpp
+
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <omp.h>
+#include <chrono>
+
+using namespace std;
+
+// Function to perform parallel BFS
+void parallelBFS(const vector<vector<int>>& graph, int source, vector<bool>& visited) {
+    queue<int> q;
+    q.push(source);
+    visited[source] = true;
+
+    while (!q.empty()) {
+        int currNode = q.front();
+        q.pop();
+
+        // Process the current node
+        cout << "Visited Node: " << currNode << endl;
+
+        // Explore the neighbors in parallel
+        #pragma omp parallel for
+        for (int i = 0; i < graph[currNode].size(); i++) {
+            int neighbor = graph[currNode][i];
+            if (!visited[neighbor]) {
+                visited[neighbor] = true;
+                q.push(neighbor);
+            }
+        }
+    }
+}
+
+int main() {
+    int numNodes = 7;  // Number of nodes in the graph
+
+    // Define the undirected graph as an adjacency list
+    vector<vector<int>> graph(numNodes);
+    graph[0] = {1, 2};
+    graph[1] = {0, 3, 4};
+    graph[2] = {0, 5};
+    graph[3] = {1, 6};
+    graph[4] = {1};
+    graph[5] = {2};
+    graph[6] = {3};
+
+    // Initialize the visited array
+    vector<bool> visited(numNodes, false);
+
+    // Measure sequential BFS performance
+    auto startSequential = chrono::steady_clock::now();
+
+    cout << "Sequential BFS:" << endl;
+    for (int i = 0; i < numNodes; i++) {
+        if (!visited[i]) {
+            parallelBFS(graph, i, visited);
+        }
+    }
+
+    auto endSequential = chrono::steady_clock::now();
+    auto elapsedTimeSequential = chrono::duration_cast<chrono::microseconds>(endSequential - startSequential).count();
+
+    // Reset the visited array
+    fill(visited.begin(), visited.end(), false);
+
+    // Measure parallel BFS performance
+    auto startParallel = chrono::steady_clock::now();
+
+    cout << "\nParallel BFS:" << endl;
+    #pragma omp parallel
+    {
+        #pragma omp single
+        {
+            for (int i = 0; i < numNodes; i++) {
+                if (!visited[i]) {
+                    parallelBFS(graph, i, visited);
+                }
+            }
+        }
+    }
+
+    auto endParallel = chrono::steady_clock::now();
+    auto elapsedTimeParallel = chrono::duration_cast<chrono::microseconds>(endParallel - startParallel).count();
+
+    // Output the performance results
+    cout << "\nPerformance Results:" << endl;
+    cout << "Sequential BFS Elapsed Time: " << elapsedTimeSequential << " microseconds" << endl;
+    cout << "Parallel BFS Elapsed Time: " << elapsedTimeParallel << " microseconds" << endl;
+
+    return 0;
+}
+
+
+
+%%shell
+nvcc bfs.cpp -o bfs
+
+
+%%shell
+./bfs

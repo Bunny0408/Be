@@ -1,0 +1,47 @@
+import pandas as pd
+
+
+# Load the dataset
+url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/letter-recognition/letter-recognition.data'
+column_names = ['letter', 'x-box', 'y-box', 'width', 'height', 'onpix', 'x-bar', 'y-bar', 'x2-bar', 'y2-bar', 'xy-bar', 'x2y-br', 'xy2-br', 'x-ege', 'xegvy', 'y-ege', 'yegvx']
+data = pd.read_csv(url, names=column_names)
+
+
+# Split features and labels
+X = data.drop('letter', axis=1)
+y = data['letter']
+
+
+# Convert letter labels to numerical values (0-25)
+y = y.astype('category').cat.codes
+
+
+# Normalize features
+X = (X - X.mean()) / X.std()
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+import tensorflow as tf
+model = tf.keras.Sequential()
+model.add(tf.keras.layers.Dense(128, activation='relu', input_shape=(16,)))
+model.add(tf.keras.layers.Dense(64, activation='relu'))
+model.add(tf.keras.layers.Dense(26, activation='softmax'))
+
+
+model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+
+model.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=10, batch_size=64)
+
+
+loss, accuracy = model.evaluate(X_test, y_test)
+print("Test loss:", loss)
+print("Test accuracy:", accuracy)
+
+
+predictions = model.predict(X_test[:5])
+predicted_letters = [chr(pred.argmax() + 65) for pred in predictions]
+print("Predicted letters:", predicted_letters)
